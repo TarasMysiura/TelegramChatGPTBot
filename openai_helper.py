@@ -16,7 +16,8 @@ class OpenAIHelper:
         openai.api_key = config['api_key']
         self.config = config
         self.conversations: dict[int: list] = {}  # {chat_id: history}
-        self.last_updated: dict[int: datetime] = {}  # {chat_id: last_update_timestamp}
+        # {chat_id: last_update_timestamp}
+        self.last_updated: dict[int: datetime] = {}
 
     def get_chat_response(self, chat_id: int, query: str) -> str:
         """
@@ -33,14 +34,17 @@ class OpenAIHelper:
 
             # Перевіряємо розмір історії, щоб не використовувати надлишково наш токен
             if len(self.conversations[chat_id]) > self.config['max_history_size']:
-                logging.info(f'Chat history for chat ID {chat_id} is too long. Summarising...')
+                logging.info(
+                    f'Chat history for chat ID {chat_id} is too long. Summarising...')
                 try:
                     summary = self.__summarise(self.conversations[chat_id])
                     logging.debug(f'Summary: {summary}')
                     self.reset_chat_history(chat_id)
-                    self.__add_to_history(chat_id, role="assistant", content=summary)
+                    self.__add_to_history(
+                        chat_id, role="assistant", content=summary)
                 except Exception as e:
-                    logging.warning(f'Error while summarising chat history: {str(e)}. Popping elements instead...')
+                    logging.warning(
+                        f'Error while summarising chat history: {str(e)}. Popping elements instead...')
                     self.conversations[chat_id] = self.conversations[chat_id][-self.config['max_history_size']:]
 
             self.__add_to_history(chat_id, role="user", content=query)
@@ -61,13 +65,15 @@ class OpenAIHelper:
                 if len(response.choices) > 1 and self.config['n_choices'] > 1:
                     for index, choice in enumerate(response.choices):
                         if index == 0:
-                            self.__add_to_history(chat_id, role="assistant", content=choice['message']['content'])
+                            self.__add_to_history(
+                                chat_id, role="assistant", content=choice['message']['content'])
                         answer += f'{index+1}\u20e3\n'
                         answer += choice['message']['content']
                         answer += '\n\n'
                 else:
                     answer = response.choices[0]['message']['content']
-                    self.__add_to_history(chat_id, role="assistant", content=answer)
+                    self.__add_to_history(
+                        chat_id, role="assistant", content=answer)
 
                 if self.config['show_usage']:
                     answer += "\n\n---\n" \
@@ -96,7 +102,8 @@ class OpenAIHelper:
         """
         Resets the conversation history.
         """
-        self.conversations[chat_id] = [{"role": "system", "content": self.config['assistant_prompt']}]
+        self.conversations[chat_id] = [
+            {"role": "system", "content": self.config['assistant_prompt']}]
 
     def __max_age_reached(self, chat_id) -> bool:
         """
@@ -127,8 +134,9 @@ class OpenAIHelper:
         :return: The summary
         """
         messages = [
-            { "role": "assistant", "content": "Summarize this conversation in 700 characters or less" },
-            { "role": "user", "content": str(conversation) }
+            {"role": "assistant",
+                "content": "Summarize this conversation in 700 characters or less"},
+            {"role": "user", "content": str(conversation)}
         ]
         response = openai.ChatCompletion.create(
             model=self.config['model'],
